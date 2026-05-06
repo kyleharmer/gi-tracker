@@ -6,6 +6,8 @@
 <title>General Inspection — Task Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -198,16 +200,14 @@ body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--tx);min-he
 
 .save-ind{position:fixed;top:10px;right:16px;background:var(--gig);color:#fff;font-size:11px;font-weight:600;padding:4px 14px;border-radius:20px;z-index:400;opacity:0;transition:opacity .5s;pointer-events:none}
 .sync-wrap{display:flex;align-items:center;gap:8px}
-.sync-status{display:flex;align-items:center;gap:4px;font-size:11px}
-.user-chip{font-size:11px;color:rgba(255,255,255,.75);cursor:pointer;padding:4px 10px;border-radius:20px;border:1px solid rgba(255,255,255,.2);white-space:nowrap}
-.user-chip:hover{background:rgba(255,255,255,.1)}
+.sync-status{display:flex;align-items:center;gap:3px;min-width:60px}
+.user-chip{font-size:11px;color:rgba(255,255,255,.8);cursor:pointer;padding:5px 11px;border-radius:20px;border:1px solid rgba(255,255,255,.25);white-space:nowrap;background:rgba(255,255,255,.08)}
+.user-chip:hover{background:rgba(255,255,255,.18)}
 .banner{display:none;padding:9px 20px;font-size:12px;font-weight:600;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:2px solid}
 .banner-update{background:#edf7f0;border-color:var(--gig);color:var(--gig)}
-@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
-
 <div class="hdr">
   <div class="hdr-inner">
     <img src="data:image/jpeg;base64,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" alt="General Inspection" class="hdr-logo">
@@ -218,24 +218,20 @@ body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--tx);min-he
         <span class="user-chip" id="user-chip" onclick="promptChangeName()" title="Click to change your name">&#128100; ...</span>
       </div>
       <button class="hbtn" onclick="downloadBackup()" title="Download JSON backup">&#128190; Backup</button>
-      <button class="hbtn" onclick="openRestoreDialog()" title="Restore from backup file">&#128257; Restore</button>
-      <button class="hbtn" onclick="openReport()" style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.35)">&#128438; Report</button>
+      <button class="hbtn" onclick="openRestoreDialog()" title="Restore from backup">&#128257; Restore</button>
+      <button class="hbtn" onclick="openReport()" style="background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35)">&#128462; Report</button>
       <button class="hbtn p" onclick="openAddTab()">+ Add PM Tab</button>
     </div>
   </div>
 </div>
-
 <div class="banner banner-update" id="update-banner"></div>
 <div class="tabs-bar" id="tabsBar"></div>
 <div class="main"><div id="appContent"></div></div>
 <div class="save-ind" id="save-ind">Saved</div>
 
-<!-- USER NAME MODAL -->
 <div class="modal-overlay" id="userModal">
-  <div class="modal" style="max-width:420px"><div id="userModalBody"></div></div>
+  <div class="modal" style="max-width:440px"><div id="userModalBody"></div></div>
 </div>
-
-<!-- TASK MODAL -->
 <div class="modal-overlay" id="taskModal">
   <div class="modal">
     <div class="modal-title" id="modalTitle">Add Task</div>
@@ -246,8 +242,6 @@ body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--tx);min-he
     </div>
   </div>
 </div>
-
-<!-- TAB MODAL -->
 <div class="modal-overlay" id="tabModal">
   <div class="modal">
     <div class="modal-title">Add PM Tab</div>
@@ -261,8 +255,6 @@ body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--tx);min-he
     </div>
   </div>
 </div>
-
-<!-- CONFIG MODAL -->
 <div class="modal-overlay" id="cfgModal">
   <div class="modal" style="max-width:640px">
     <div class="modal-title" id="cfgModalTitle">Configure Tab</div>
@@ -272,8 +264,6 @@ body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--tx);min-he
     </div>
   </div>
 </div>
-
-<!-- HISTORY MODAL -->
 <div class="modal-overlay" id="histModal">
   <div class="modal" style="max-width:500px">
     <div class="modal-title">Change Log</div>
@@ -283,60 +273,69 @@ body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--tx);min-he
     </div>
   </div>
 </div>
-
-<!-- REPORT MODAL -->
 <div class="modal-overlay" id="reportModal">
   <div class="modal" style="max-width:660px;max-height:90vh;overflow-y:auto">
     <div id="reportModalBody"></div>
   </div>
 </div>
-
 <div class="toast" id="toast"></div>
 
 <script>
 // ═══════════════════════════════════════════════════════════════════
-// FIREBASE REALTIME DATABASE LAYER
-// Real-time sync — no polling, push notifications to all clients
+// FIREBASE REALTIME DATABASE LAYER v2
+// Fixed: SDK loading, name prompt, seed data on first run
 // ═══════════════════════════════════════════════════════════════════
 
 var FIREBASE_CONFIG = {
-  apiKey:     "AIzaSyAHLU7QSQmaONIUAAVOt8mgzyYsLaMxFTw",
-  databaseURL:"https://gi-task-tracker-default-rtdb.firebaseio.com",
-  projectId:  "gi-task-tracker"
+  apiKey:      "AIzaSyAHLU7QSQmaONIUAAVOt8mgzyYsLaMxFTw",
+  databaseURL: "https://gi-task-tracker-default-rtdb.firebaseio.com",
+  projectId:   "gi-task-tracker"
 };
 
-var DATA_PATH   = 'tasktracker/state';
-var LOCK_PATH   = 'tasktracker/lock';
-var LOCAL_KEY   = 'gi-tt-local-cache';
-var USER_KEY    = 'gi-tt-username';
-var REPORT_KEY  = 'gi-tt-report-defaults';
+var DATA_PATH  = 'tasktracker/state';
+var LOCAL_KEY  = 'gi-tt-local-v2';
+var USER_KEY   = 'gi-tt-username';
+var REPORT_KEY = 'gi-tt-report-defaults';
 
-var db          = null;       // Firebase database reference
-var currentUser = '';
-var cloudVersion= 0;
-var localVersion= 0;
-var saveDebounce= null;
-var saveIndTimer= null;
-var realtimeListener = null;
-var ignoreNextRemote = false; // suppress echo after own save
+var REPORT_STORE = REPORT_KEY; // alias used by report functions
 
-// ── USER IDENTITY ─────────────────────────────────────────────────
+var db              = null;
+var currentUser     = '';
+var cloudVersion    = 0;
+var localVersion    = 0;
+var saveDebounce    = null;
+var saveIndTimer    = null;
+var realtimeRef     = null;
+var ignoreNextRemote = false;
+var appReady        = false;
+
+// ── USER IDENTITY ──────────────────────────────────────────────────
 function loadUserName() {
-  try { currentUser = localStorage.getItem(USER_KEY) || ''; } catch(e) {}
+  try { currentUser = localStorage.getItem(USER_KEY) || ''; } catch(e) { currentUser = ''; }
 }
 function saveUserName(name) {
-  currentUser = name.trim();
+  currentUser = (name || '').trim();
   try { localStorage.setItem(USER_KEY, currentUser); } catch(e) {}
 }
-
+function updateUserChip() {
+  var el = document.getElementById('user-chip');
+  if (el) el.textContent = '\u{1F464} ' + (currentUser || 'Anonymous');
+}
+function promptChangeName() {
+  var name = prompt('Your display name (shown in change log):', currentUser);
+  if (name !== null) {
+    saveUserName(name);
+    updateUserChip();
+    showToast('Name updated' + (currentUser ? ' to "' + currentUser + '"' : ' — anonymous'));
+  }
+}
 function openUserPrompt(onComplete) {
   var h = '<div class="modal-title">Welcome to GI Task Tracker</div>';
-  h += '<p style="font-size:13px;color:var(--txm);margin-bottom:16px">Enter your name so your edits show in the change log. You can skip — it only affects attribution and is stored on this device only.</p>';
+  h += '<p style="font-size:13px;color:var(--txm);margin-bottom:16px">Enter your name so your edits are tracked in the change log.<br>This is stored only on this device and only asked once per browser.</p>';
   h += '<div class="form-group" style="margin-bottom:10px">';
   h += '<label class="form-label">Your Name</label>';
   h += '<input type="text" class="form-input" id="userNameInp" placeholder="e.g. Kyle" maxlength="40">';
   h += '</div>';
-  h += '<p style="font-size:11px;color:var(--txl)">One-time prompt per browser. You can change this anytime in the header.</p>';
   h += '<div class="modal-acts">';
   h += '<button class="btn-cancel" onclick="skipUserName()">Skip</button>';
   h += '<button class="btn-save" onclick="confirmUserName()">Continue</button>';
@@ -347,10 +346,10 @@ function openUserPrompt(onComplete) {
     var inp = document.getElementById('userNameInp');
     if (inp) {
       inp.focus();
-      inp.addEventListener('keydown', function(e) { if (e.key==='Enter') confirmUserName(); });
+      inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') confirmUserName(); });
     }
-  }, 150);
-  window._nameCallback = onComplete;
+  }, 200);
+  window._nameCallback = onComplete || function(){};
 }
 function confirmUserName() {
   var inp = document.getElementById('userNameInp');
@@ -358,99 +357,64 @@ function confirmUserName() {
   document.getElementById('userModal').classList.remove('open');
   updateUserChip();
   if (window._nameCallback) window._nameCallback();
+  window._nameCallback = null;
 }
 function skipUserName() {
   saveUserName('');
   document.getElementById('userModal').classList.remove('open');
+  updateUserChip();
   if (window._nameCallback) window._nameCallback();
-}
-function updateUserChip() {
-  var el = document.getElementById('user-chip');
-  if (el) el.textContent = currentUser ? ('👤 ' + currentUser) : '👤 Anonymous';
-}
-function promptChangeName() {
-  var name = prompt('Change your display name:', currentUser);
-  if (name !== null) { saveUserName(name); updateUserChip(); showToast('Name updated to "' + currentUser + '"'); }
+  window._nameCallback = null;
 }
 
-// ── SYNC STATUS ───────────────────────────────────────────────────
+// ── SYNC STATUS UI ─────────────────────────────────────────────────
 function setSyncStatus(status, msg) {
   var el = document.getElementById('sync-status');
   if (!el) return;
-  var cfg = {
-    idle:     { dot:'rgba(255,255,255,.25)', label:'' },
-    saving:   { dot:'#d4a017',  label:'Saving...' },
-    synced:   { dot:'#4caf50',  label:'Synced' },
-    error:    { dot:'#b93328',  label: msg || 'Sync error' },
-    offline:  { dot:'#b93328',  label:'Offline — saved locally' }
+  var map = {
+    idle:    { dot: 'rgba(255,255,255,.25)', text: '' },
+    saving:  { dot: '#d4a017',  text: 'Saving...' },
+    synced:  { dot: '#4caf50',  text: 'Synced' },
+    error:   { dot: '#b93328',  text: msg || 'Sync error' },
+    offline: { dot: '#b93328',  text: msg || 'Offline' }
   };
-  var c = cfg[status] || cfg.idle;
-  el.innerHTML = '<span style="color:'+c.dot+';font-size:16px;line-height:1;margin-right:4px">●</span>'
-    + '<span style="font-size:11px;color:rgba(255,255,255,.7)">' + c.label + '</span>';
+  var c = map[status] || map.idle;
+  el.innerHTML = '<span style="color:' + c.dot + ';font-size:14px;line-height:1">\u25CF</span>'
+    + (c.text ? '<span style="font-size:11px;color:rgba(255,255,255,.75);margin-left:4px">' + c.text + '</span>' : '');
 }
 
-// ── FIREBASE INIT ─────────────────────────────────────────────────
-function initFirebase() {
-  return new Promise(function(resolve, reject) {
-    if (typeof firebase !== 'undefined') { resolve(); return; }
-    // Load Firebase SDK dynamically
-    var scripts = [
-      'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js',
-      'https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js'
-    ];
-    var loaded = 0;
-    scripts.forEach(function(src) {
-      var s = document.createElement('script');
-      s.src = src;
-      s.onload = function() { if (++loaded === scripts.length) resolve(); };
-      s.onerror = function() { reject(new Error('Failed to load Firebase SDK')); };
-      document.head.appendChild(s);
-    });
-  });
-}
-
-// ── READ / WRITE ──────────────────────────────────────────────────
-function fbRead() {
-  return new Promise(function(resolve, reject) {
-    db.ref(DATA_PATH).once('value',
-      function(snap) { resolve(snap.val()); },
-      function(err)  { reject(err); }
-    );
-  });
-}
-function fbWrite(data) {
-  return new Promise(function(resolve, reject) {
-    db.ref(DATA_PATH).set(data,
-      function(err) { if (err) reject(err); else resolve(true); }
-    );
-  });
-}
-
-// ── REALTIME LISTENER ─────────────────────────────────────────────
-function attachListener() {
-  if (realtimeListener) db.ref(DATA_PATH).off('value', realtimeListener);
-  realtimeListener = db.ref(DATA_PATH).on('value', function(snap) {
-    var remote = snap.val();
-    if (!remote || !remote.tabs) return;
-    if (ignoreNextRemote) { ignoreNextRemote = false; return; }
-    if (remote.v <= localVersion) return; // our data or older
-    // Someone else updated — show banner
-    showUpdateBanner(remote);
-  }, function(err) {
-    console.warn('Listener error:', err);
-    setSyncStatus('error');
-  });
-}
-
-// ── LOCAL CACHE (fallback) ────────────────────────────────────────
+// ── LOCAL CACHE ────────────────────────────────────────────────────
 function cacheLoad() {
-  try { var r = localStorage.getItem(LOCAL_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+  try { var r = localStorage.getItem(LOCAL_KEY); return r ? JSON.parse(r) : null; }
+  catch(e) { return null; }
 }
 function cacheSave(data) {
   try { localStorage.setItem(LOCAL_KEY, JSON.stringify(data)); } catch(e) {}
 }
 
-// ── STATE HELPERS ─────────────────────────────────────────────────
+// ── REPORT DEFAULTS (localStorage only — per user) ─────────────────
+function loadReportDefaults() {
+  try { var r = localStorage.getItem(REPORT_KEY); if (r) return JSON.parse(r); } catch(e) {}
+  return {
+    title: 'General Inspection Task Report', subtitle: '',
+    scope: 'all', selectedTabs: [],
+    includeStats: true, includeCharts: true, includeTables: true,
+    includeCompleted: false, priorities: ['High','Medium','Low'], statuses: []
+  };
+}
+function saveReportDefaults(cfg) {
+  try { localStorage.setItem(REPORT_KEY, JSON.stringify(cfg)); } catch(e) {}
+}
+
+// ── STATE HELPERS ──────────────────────────────────────────────────
+function nowTs() {
+  var ts = new Date().toLocaleString('en-US', {
+    month:'2-digit', day:'2-digit', year:'numeric',
+    hour:'2-digit', minute:'2-digit', hour12:true
+  });
+  return currentUser ? ts + ' (' + currentUser + ')' : ts;
+}
+
 function serializeState() {
   return {
     v: (localVersion || 0) + 1,
@@ -463,6 +427,7 @@ function serializeState() {
     tabBuckets: state.tabBuckets
   };
 }
+
 function applyRemoteState(remote) {
   if (!remote || !remote.tabs) return false;
   state.tabs       = remote.tabs;
@@ -470,40 +435,65 @@ function applyRemoteState(remote) {
   state.timestamps = remote.timestamps || {};
   state.tabCols    = remote.tabCols    || {};
   state.tabBuckets = remote.tabBuckets || {};
-  cloudVersion = remote.v || 0;
-  localVersion = cloudVersion;
+  cloudVersion  = remote.v || 0;
+  localVersion  = cloudVersion;
   if (!state.activeTab || state.tabs.indexOf(state.activeTab) === -1)
     state.activeTab = state.tabs[0];
   return true;
 }
 
-// ── PERSIST (debounced write to Firebase) ─────────────────────────
-function nowTs() {
-  var ts = new Date().toLocaleString('en-US', {
-    month:'2-digit', day:'2-digit', year:'numeric',
-    hour:'2-digit', minute:'2-digit', hour12:true
+// ── FIREBASE READ / WRITE ──────────────────────────────────────────
+function fbRead() {
+  return new Promise(function(resolve, reject) {
+    if (!db) { reject(new Error('DB not ready')); return; }
+    db.ref(DATA_PATH).once('value',
+      function(snap) { resolve(snap.val()); },
+      function(err)  { reject(err); }
+    );
   });
-  return currentUser ? (ts + ' (' + currentUser + ')') : ts;
 }
 
+function fbWrite(data) {
+  return new Promise(function(resolve, reject) {
+    if (!db) { reject(new Error('DB not ready')); return; }
+    db.ref(DATA_PATH).set(data,
+      function(err) { if (err) reject(err); else resolve(true); }
+    );
+  });
+}
+
+// ── REALTIME LISTENER ──────────────────────────────────────────────
+function attachListener() {
+  if (!db) return;
+  if (realtimeRef) db.ref(DATA_PATH).off('value', realtimeRef);
+  realtimeRef = function(snap) {
+    if (!appReady) return;
+    var remote = snap.val();
+    if (!remote || !remote.tabs) return;
+    if (ignoreNextRemote) { ignoreNextRemote = false; return; }
+    if (remote.v <= localVersion) return;
+    showUpdateBanner(remote);
+  };
+  db.ref(DATA_PATH).on('value', realtimeRef, function(err) {
+    console.warn('Listener error:', err);
+  });
+}
+
+// ── PERSIST ────────────────────────────────────────────────────────
 function persist() {
   state.timestamps[state.activeTab] = nowTs();
-  // Update save indicator immediately
+  cacheSave(serializeState());
   var ind = document.getElementById('save-ind');
   if (ind) { ind.textContent = 'Saving...'; ind.style.opacity = '1'; }
   setSyncStatus('saving');
-  // Cache locally immediately so nothing is lost
-  cacheSave(serializeState());
-  // Debounce: fire write 800ms after last change
   clearTimeout(saveDebounce);
   saveDebounce = setTimeout(persistNow, 800);
 }
 
-async function persistNow() {
+function persistNow() {
   var payload = serializeState();
-  try {
-    ignoreNextRemote = true; // suppress echo of our own save
-    await fbWrite(payload);
+  ignoreNextRemote = true;
+  fbWrite(payload).then(function() {
     localVersion = payload.v;
     cacheSave(payload);
     setSyncStatus('synced');
@@ -517,16 +507,16 @@ async function persistNow() {
         setSyncStatus('idle');
       }, 3000);
     }
-  } catch(err) {
+  }).catch(function(err) {
     ignoreNextRemote = false;
-    setSyncStatus('offline');
+    setSyncStatus('offline', 'Offline \u2014 saved locally');
     var ind = document.getElementById('save-ind');
     if (ind) { ind.textContent = 'Saved locally (offline)'; ind.style.opacity = '1'; }
     console.warn('Firebase write failed:', err);
-  }
+  });
 }
 
-// ── BANNERS ───────────────────────────────────────────────────────
+// ── UPDATE BANNER ──────────────────────────────────────────────────
 function showUpdateBanner(remoteData) {
   var el = document.getElementById('update-banner');
   if (!el) return;
@@ -534,9 +524,12 @@ function showUpdateBanner(remoteData) {
   var when = remoteData.ts
     ? new Date(remoteData.ts).toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'})
     : 'just now';
-  el.innerHTML = '<span>&#8635; ' + esc(who) + ' updated the tracker at ' + when + '.</span>'
-    + '<button onclick="acceptUpdate()" style="margin-left:12px;background:#fff;color:var(--gig);border:1px solid var(--gig);padding:3px 12px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer">Load updates</button>'
-    + '<button onclick="dismissUpdate()" style="margin-left:6px;background:none;border:none;color:var(--txm);font-size:18px;cursor:pointer;line-height:1">&#10005;</button>';
+  el.innerHTML = '<span>\u21BA ' + esc(who) + ' updated the tracker at ' + when + '.</span>'
+    + '<button onclick="acceptUpdate()" style="margin-left:12px;background:#fff;color:var(--gig);'
+    + 'border:1px solid var(--gig);padding:3px 12px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer">'
+    + 'Load updates</button>'
+    + '<button onclick="dismissUpdate()" style="margin-left:6px;background:none;border:none;'
+    + 'color:var(--txm);font-size:18px;cursor:pointer;line-height:1">\u00D7</button>';
   el.style.display = 'flex';
   window._pendingRemote = remoteData;
 }
@@ -552,118 +545,118 @@ function acceptUpdate() {
 function dismissUpdate() {
   var el = document.getElementById('update-banner');
   if (el) el.style.display = 'none';
-  // Still track version so we don't keep showing the banner
   if (window._pendingRemote) localVersion = window._pendingRemote.v;
 }
 
-// ── BACKUP / RESTORE ──────────────────────────────────────────────
+// ── BACKUP / RESTORE ───────────────────────────────────────────────
 function downloadBackup() {
   var payload = serializeState();
   payload.backupDate = new Date().toISOString();
   var json = JSON.stringify(payload, null, 2);
-  var blob = new Blob([json], {type:'application/json'});
+  var blob = new Blob([json], {type: 'application/json'});
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'GI_TaskTracker_Backup_' + new Date().toISOString().slice(0,10) + '.json';
+  a.download = 'GI_Backup_' + new Date().toISOString().slice(0, 10) + '.json';
   a.click();
   showToast('Backup downloaded.');
 }
 function openRestoreDialog() {
-  if (!confirm('Restore from a backup file? This will overwrite ALL current data for everyone on the team.')) return;
+  if (!confirm('Restore from a backup? This overwrites ALL data for the entire team.')) return;
   var inp = document.createElement('input');
   inp.type = 'file'; inp.accept = '.json';
-  inp.onchange = async function(e) {
+  inp.onchange = function(e) {
     var file = e.target.files[0]; if (!file) return;
     var reader = new FileReader();
-    reader.onload = async function(ev) {
+    reader.onload = function(ev) {
       try {
         var data = JSON.parse(ev.target.result);
         if (!data.tabs || !data.tasks) { showToast('Invalid backup file.'); return; }
         data.v = (localVersion || 0) + 1;
         data.savedBy = currentUser || 'anonymous';
         data.ts = new Date().toISOString();
-        await fbWrite(data);
-        applyRemoteState(data);
-        cacheSave(data);
-        renderApp();
-        showToast('Backup restored successfully.');
-      } catch(ex) { showToast('Could not read backup file: ' + ex.message); }
+        fbWrite(data).then(function() {
+          applyRemoteState(data);
+          cacheSave(data);
+          renderApp();
+          showToast('Backup restored successfully.');
+        }).catch(function() { showToast('Restore failed \u2014 check connection.'); });
+      } catch(ex) { showToast('Could not read backup file.'); }
     };
     reader.readAsText(file);
   };
   inp.click();
 }
 
-// ── APP INITIALISATION ────────────────────────────────────────────
-async function initApp() {
+// ── MAIN INIT ──────────────────────────────────────────────────────
+function initApp() {
   loadUserName();
 
-  // Show loading
   document.getElementById('appContent').innerHTML =
     '<div style="text-align:center;padding:80px 20px;color:var(--txm)">'
-    + '<div style="font-size:32px;margin-bottom:16px;animation:spin 1s linear infinite">&#8635;</div>'
-    + '<div style="font-size:15px;font-weight:600">Connecting to shared database...</div>'
-    + '<div style="font-size:12px;margin-top:8px">First load may take a few seconds</div>'
+    + '<div style="font-size:36px;margin-bottom:16px">&#9654;</div>'
+    + '<div style="font-size:15px;font-weight:600;color:var(--gig)">Connecting to shared database...</div>'
+    + '<div style="font-size:12px;margin-top:8px">This usually takes just a second</div>'
     + '</div>';
 
-  // Add spin animation
-  if (!document.getElementById('spin-style')) {
-    var s = document.createElement('style');
-    s.id = 'spin-style';
-    s.textContent = '@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}';
-    document.head.appendChild(s);
-  }
-
-  // Load Firebase SDK
+  // Firebase SDKs are loaded via <script> tags in the HTML head — no dynamic loading
+  // Just init directly
   try {
-    await initFirebase();
-    firebase.initializeApp(FIREBASE_CONFIG);
+    if (!firebase.apps.length) {
+      firebase.initializeApp(FIREBASE_CONFIG);
+    }
     db = firebase.database();
   } catch(err) {
-    console.error('Firebase init failed:', err);
-    // Fall back to local cache
-    var cached = cacheLoad();
-    if (cached && cached.tabs) { applyRemoteState(cached); }
-    else { initDefault(); }
-    setSyncStatus('offline', 'Running offline');
-    showToast('Could not connect — running offline from cache.');
-    renderApp();
+    console.error('Firebase init error:', err);
+    goOffline();
     return;
   }
 
-  // Try to load cloud data
-  try {
-    var remote = await fbRead();
+  // Read from Firebase
+  fbRead().then(function(remote) {
     if (remote && remote.tabs && remote.tabs.length) {
+      // Existing data in cloud — use it
       applyRemoteState(remote);
       cacheSave(remote);
       setSyncStatus('synced');
+      finishInit();
     } else {
-      // First-ever use — seed and push
-      var cached2 = cacheLoad();
-      if (cached2 && cached2.tabs) { applyRemoteState(cached2); }
-      else { initDefault(); }
-      var payload = serializeState();
-      await fbWrite(payload);
-      localVersion = payload.v;
-      setSyncStatus('synced');
-      showToast('Database initialized with default data.');
-    }
-  } catch(err) {
-    console.warn('Firebase read failed:', err);
-    var cached3 = cacheLoad();
-    if (cached3 && cached3.tabs) {
-      applyRemoteState(cached3);
-      setSyncStatus('offline', 'Offline — using cached data');
-    } else {
+      // First ever use — seed default data and push to cloud
       initDefault();
+      var payload = serializeState();
+      fbWrite(payload).then(function() {
+        localVersion = payload.v;
+        cacheSave(payload);
+        setSyncStatus('synced');
+        showToast('Database initialized with all PM data.');
+      }).catch(function() {
+        setSyncStatus('offline', 'Offline \u2014 saved locally');
+      });
+      finishInit();
     }
+  }).catch(function(err) {
+    console.warn('Firebase read failed:', err);
+    goOffline();
+  });
+}
+
+function goOffline() {
+  var cached = cacheLoad();
+  if (cached && cached.tabs && cached.tabs.length) {
+    applyRemoteState(cached);
+    setSyncStatus('offline', 'Offline \u2014 cached data');
+    showToast('Running offline \u2014 changes saved locally only.');
+  } else {
+    initDefault();
+    setSyncStatus('offline', 'Offline');
+    showToast('Could not connect to database. Running with default data.');
   }
+  finishInit();
+}
 
-  // Attach real-time listener for live updates
+function finishInit() {
   attachListener();
-
-  // Show user name prompt if not set
+  appReady = true;
+  // Show name prompt if first time, otherwise go straight to app
   if (!currentUser) {
     openUserPrompt(function() {
       renderApp();
@@ -1320,7 +1313,7 @@ function saveTask(){
   var tab=state.activeTab,cols=getTabCols(tab),isNew=!editingTask;
   var existing=null;
   if(!isNew){var a0=(state.tasks[tab][editingBucket]||[]);for(var i=0;i<a0.length;i++){if(a0[i].id===editingTask){existing=a0[i];break;}}}
-  var task={id:editingTask||uid(),changelog:existing?(existing.changelog||[]):[{t:nowTs(),msg:'Task created'}],completedAt:existing?existing.completedAt:null};
+  var task={id:editingTask||uid(),changelog:existing?(existing.changelog||[]):[{t:nowTs(),msg:(currentUser?currentUser+' created task':'Task created')}],completedAt:existing?existing.completedAt:null};
   var changes=[];
   cols.forEach(function(c){
     if(!c.visible)return;
@@ -2004,7 +1997,6 @@ function showToast(msg){var el=document.getElementById('toast');el.textContent=m
 // boot → firebase layer
 
 
-// Modal overlay-click close
 ['taskModal','tabModal','cfgModal','histModal','reportModal','userModal'].forEach(function(id) {
   var el = document.getElementById(id);
   if (el) el.addEventListener('click', function(e) { if (e.target.id === id) closeModal(id); });
