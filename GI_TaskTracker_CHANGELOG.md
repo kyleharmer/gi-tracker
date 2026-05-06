@@ -7,130 +7,118 @@
 
 ---
 
+## v11.0 — 2026-05-06
+**New logo + mobile action sheet fix**
+- Replaced GII dark-background logo with new AI-generated app icon (white/rounded background, clean PNG — no blend mode hack required)
+- New logo used everywhere: header, browser tab favicon, iOS/Android home screen icon, PWA manifest, and PDF report header
+- PWA icons regenerated at 180×192×512px from new logo
+- Fixed mobile action sheet bug: tapping Edit or View Change Log did nothing — root cause was `closeActionSheet()` nulling `_asTaskId` and `_asBucket` before the action functions could read them. Fixed by capturing values to local variables before closing
+- Added `data-tab` attribute to each task row — action sheet now explicitly sets `state.activeTab` to the correct tab before calling edit/history/delete, preventing wrong-tab lookup errors
+- Full clean rebuild from source JS files — eliminates accumulated patch debt
+
+---
+
 ## v10.0 — 2026-05-06
 **PWA icons + tab change history**
-- GII logo now appears in browser tabs (favicon), iPhone/iPad home screen (apple-touch-icon), and Android/Chrome home screen
+- GII logo appears in browser tabs (favicon), iPhone/iPad home screen, and Android/Chrome home screen
 - Web App Manifest embedded — app name "GI Tracker", GI green theme color, standalone display mode
-- `apple-mobile-web-app-capable` — opens full-screen on iOS with no browser chrome when installed to home screen
-- Icons generated at 180×192×512px with dark green background for proper iOS compositing
-- Tab change history now tracked: every tab creation, deletion, and rename is logged with timestamp, action, tab name, and who did it
-- Tab history stored in Firebase with all other state (persists across users and devices)
+- `apple-mobile-web-app-capable` — opens full-screen on iOS with no browser chrome when installed
+- Icons generated at 180×192×512px
+- Tab change history tracked: every tab creation, deletion, and rename logged with timestamp, action, tab name, and who did it
+- Tab history stored in Firebase with all other state
 - Last 20 tab events visible at bottom of Dashboard in "Tab Change History" table
 - Stores up to 100 events total, oldest trimmed automatically
-- Version bumped to v10.0
 
-**To install on iPhone/iPad:** Open URL in Safari → Share → "Add to Home Screen" → Add  
-**To install on Android:** Open URL in Chrome → three-dot menu → "Add to Home Screen"  
-**To install on desktop (Chrome/Edge):** Click the install icon in the address bar
+**To install on iPhone/iPad:** Open URL in Safari → Share → "Add to Home Screen" → Add
+**To install on Android:** Open in Chrome → three-dot menu → "Add to Home Screen"
+**To install on desktop:** Click the install icon in the address bar (Chrome/Edge)
 
 ---
 
 ## v9.0 — 2026-05-06
 **Cross-platform font consistency**
-- Added full font fallback stacks everywhere: `Barlow → Segoe UI → system-ui → sans-serif` and `Barlow Condensed → Segoe UI Semibold → Segoe UI → system-ui → sans-serif`
-- Segoe UI fallback ensures clean rendering on Windows 10/11 even if Google Fonts CDN is blocked or times out
-- Google Fonts now loads asynchronously (non-blocking) — page renders immediately with fallback fonts rather than waiting on CDN
-- Added `-webkit-font-smoothing: antialiased` and `text-rendering: optimizeLegibility` globally — fixes jagged/sharp edge rendering on Windows browsers
-- Applied smoothing to all 19 font references across CSS
+- Full font fallback stacks: `Barlow → Segoe UI → system-ui → sans-serif` and `Barlow Condensed → Segoe UI Semibold → Segoe UI → system-ui → sans-serif`
+- Segoe UI fallback ensures clean rendering on Windows 10/11 if Google Fonts CDN is blocked
+- Google Fonts loads asynchronously (non-blocking) — page renders immediately
+- Added `-webkit-font-smoothing: antialiased` and `text-rendering: optimizeLegibility` globally
+- Fixes jagged/sharp edge rendering on Windows browsers
 
 ---
 
 ## v8.0 — 2026-05-06
 **Mobile interaction + versioning**
-- Double-click any task row on desktop opens edit modal directly
-- Single tap any task row on mobile opens native-style bottom action sheet (Edit / View Change Log / Delete) with large touch targets
-- Touch vs mouse device automatically detected (`ontouchstart` / `maxTouchPoints`)
-- Subtle "double-click to edit" hint text appears on desktop row hover
-- Version number (`v8.0`) now visible in app header next to "Task Tracker"
-- `APP_VERSION` and `BUILD_DATE` constants at top of JS for easy future updates
-- Added changelog document (`GI_TaskTracker_CHANGELOG.md`)
+- Double-click any task row on desktop opens edit modal
+- Single tap any task row on mobile opens native-style bottom action sheet (Edit / View Change Log / Delete)
+- Touch vs mouse device automatically detected
+- Subtle "double-click to edit" hint on desktop row hover
+- Version number visible in app header (v8.0+)
+- `APP_VERSION` and `BUILD_DATE` constants at top of JS
 
 ---
 
 ## v7.0 — 2026-05-06
 **Logo, visual polish, report improvements**
-- Replaced original banner logo with GII icon mark (PNG, `mix-blend-mode: screen`, `opacity: 0.85`)
-- Header gradient lightened so dark GII mark reads better against background
-- Logo height increased to 50px, "Task Tracker" title increased to 21px
-- Update banner changed to bright green (#4a9a20) — more prominent against header
-- "Show/Hide Completed" button now blue-tinted, label reads "Show/Hide Completed (N)" — distinct from grey dropdowns
-- Print/Save PDF button in report changed to bold blue with drop shadow
-- Report header green prints correctly (`print-color-adjust: exact` added globally)
-- GII logo added to generated PDF report header
-- Active tab preserved when loading remote updates (no longer jumps to last-saved tab)
+- GII icon mark in header (mix-blend-mode: screen)
+- Header gradient lightened, logo 50px, title 21px
+- Update banner bright green — more prominent
+- "Show/Hide Completed" button blue-tinted, distinct from dropdowns
+- Print/Save PDF button bold blue with drop shadow
+- Report header prints in color (print-color-adjust: exact)
+- GII logo in PDF report header
+- Active tab preserved when loading remote updates
 
 ---
 
 ## v6.0 — 2026-05-06
-**Firebase REST API — live shared sync (no SDK)**
-- Replaced Firebase JS SDK (caused `eval()` CSP block on GitHub Pages) with pure `fetch()` REST calls
-- Works on GitHub Pages, SharePoint, file://, anywhere — no CSP issues
-- Real-time updates via Server-Sent Events (SSE) — instant push when another user saves
+**Firebase REST API — live shared sync**
+- Pure `fetch()` REST calls — no SDK, no eval(), works on GitHub Pages
+- Real-time updates via Server-Sent Events (SSE)
 - Falls back to 15-second polling if SSE unavailable
-- Data wrapped as `{d: "..."}` to avoid Firebase key character restrictions (`/ . # $ [ ]`)
-- User name prompt on first open per browser (stored in localStorage only)
-- Sync status dot in header: green = synced, yellow = saving, red = offline
+- Data wrapped as `{d: "..."}` to avoid Firebase key restrictions
+- User name prompt on first open per browser
+- Sync status dot: green = synced, yellow = saving, red = offline
 - "Load updates" banner when another user saves
-- Backup (JSON download) and Restore buttons in header
+- Backup and Restore buttons in header
 
 ---
 
 ## v5.0 — 2026-05-06
-**Completed task handling + countdown badges + input validation**
-- Completed tasks hidden by default on all tabs
-- "Show/Hide Completed" toggle per tab shows count
-- Revealed completed tasks greyed/struck-through with "Xd ago" label
-- `completedAt` timestamp tracked per task
-- Active tasks due within 14 days show live countdown badge ("3 days left" etc.)
-- Input `maxlength` enforced: textarea 2000, text 200, name/owner 120, tab name 60
-- Auto-save debounced 800ms — "Saving..." / "Saved by [Name]" indicator
-- Report generation: configurable PDF via browser print dialog
-- Report includes summary stats, 3 charts, task tables by PM/bucket
-- Report config saved as defaults per user
+**Completed tasks + countdown badges + validation**
+- Completed tasks hidden by default, toggle to reveal
+- Revealed completed tasks greyed/struck-through with "Xd ago"
+- Active tasks due within 14 days show countdown badge
+- Input maxlength enforced on all fields
+- Auto-save debounced 800ms with save indicator
+- PDF report generation (configurable scope, charts, tables)
 
 ---
 
 ## v4.0 — 2026-05-06
-**Full Excel import — all 8 PM tabs pre-loaded**
+**Excel import — 8 PM tabs, 173 tasks**
 - Kyle, Favs, Noah, Kendra, Software-Kendra, Service-Jonah, Jason, Design Bob & Cody
-- Per-tab custom bucket structures matching original Excel layout
-- 173 tasks seeded with real data from Excel file
-- Excel serial dates converted to proper dates
-- Status values normalized across all sheets
+- Per-tab custom buckets matching Excel layout
+- Real task data, normalized dates and statuses
 
 ---
 
 ## v3.0 — 2026-05-06
-**Owner/Supporting split, My Tasks, exports, change log**
-- Split "Responsible" into Owner (green) + Supporting (blue) with autocomplete
-- Folksonomy autocomplete learns all names entered across all tabs
-- My Tasks view — search any name across all PM tabs, shows role and context
-- Priority flags: High / Medium / Low with color-coded badges
-- Export CSV per tab + Export All CSV from Dashboard
-- Per-task change log with history modal
-- Column sort by clicking any header
+**Owner/Supporting, My Tasks, exports, change log**
+- Owner (green) + Supporting (blue) with autocomplete
+- My Tasks view across all tabs
+- Priority flags, CSV export, per-task change log, column sort
 
 ---
 
 ## v2.0 — 2026-05-06
-**Per-tab configuration + global dashboard**
-- Per-tab column and bucket configuration (inherits global defaults)
-- Toggle/add/remove columns and buckets per tab
-- Global Dashboard: summary stats, 3 charts, filterable master task table
-- Export All CSV from Dashboard
-- Tab rename in Configure panel
-- Mobile responsive layout
+**Per-tab config + dashboard**
+- Per-tab column/bucket configuration
+- Dashboard: stats, 3 charts, filterable master table
 
 ---
 
 ## v1.0 — 2026-05-06
 **Initial build — localStorage only**
-- Single self-contained HTML file
-- 8 PM tabs, 6 default buckets per tab
-- Task fields: Customer, Details/Notes, Responsible, Status, Due Date, Milestone, Meeting Notes
-- Due date color coding (red/yellow/green)
-- Stats row, search + filter bar per tab
-- localStorage persistence (per browser, not shared)
+- Single HTML file, 8 tabs, task fields, due date color coding, localStorage
 
 ---
 
@@ -140,14 +128,12 @@
 |------|-------|
 | GitHub repo | kyleharmer/gi-tracker |
 | Live URL | https://kyleharmer.github.io/gi-tracker |
-| File to upload | Rename to `index.html` before uploading |
+| Upload as | index.html |
 | Firebase project | gi-task-tracker |
 | Firebase DB URL | https://gi-task-tracker-default-rtdb.firebaseio.com |
-| Firebase rules | `{".read": true, ".write": true}` — open (internal only) |
-| API key | Embedded in HTML — safe for internal use only |
+| Firebase rules | `{".read": true, ".write": true}` |
+| API key | Embedded in HTML — internal use only |
 
-**Moving hosting:** Data lives in Firebase, not the HTML. Move `index.html` to any host freely — same credentials = same data.
-
-**Backup:** Use the Backup button in the header to download a full JSON snapshot. Restore button uploads it back to Firebase for the whole team.
-
-**Updating version:** Change `APP_VERSION` at the top of the JS, add an entry at the top of this file, upload both `index.html` and `GI_TaskTracker_CHANGELOG.md` to GitHub.
+**Moving hosting:** Data lives in Firebase. Move `index.html` anywhere — same credentials = same data.  
+**Backup:** Header Backup button downloads full JSON. Restore uploads it back for the whole team.  
+**Updating version:** Change `APP_VERSION` at top of JS, add entry here, upload both files to GitHub.
