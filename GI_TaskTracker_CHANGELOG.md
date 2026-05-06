@@ -8,117 +8,97 @@
 ---
 
 ## v11.0 — 2026-05-06
-**New logo + mobile action sheet fix**
-- Replaced GII dark-background logo with new AI-generated app icon (white/rounded background, clean PNG — no blend mode hack required)
-- New logo used everywhere: header, browser tab favicon, iOS/Android home screen icon, PWA manifest, and PDF report header
-- PWA icons regenerated at 180×192×512px from new logo
-- Fixed mobile action sheet bug: tapping Edit or View Change Log did nothing — root cause was `closeActionSheet()` nulling `_asTaskId` and `_asBucket` before the action functions could read them. Fixed by capturing values to local variables before closing
-- Added `data-tab` attribute to each task row — action sheet now explicitly sets `state.activeTab` to the correct tab before calling edit/history/delete, preventing wrong-tab lookup errors
-- Full clean rebuild from source JS files — eliminates accumulated patch debt
+**Logo corrections + mobile action sheet fix + clean rebuild**
+- Header and report logo corrected to v2 (GII-LOGO-TRANSPARENT copy, mix-blend-mode: screen + opacity 0.85) — the version that renders correctly on the dark green header
+- PWA icons (favicon, iOS home screen, Android) use v3 (AI-generated clean white rounded icon) — no blend mode needed
+- Fixed mobile action sheet bug: tapping Edit or View Change Log did nothing — root cause was `closeActionSheet()` nulling `_asTaskId/_asBucket/_asTab` before the action functions could read them — fixed by capturing to local variables first
+- `data-tab` attribute on each task row — action sheet sets correct `state.activeTab` before calling edit/history/delete
+- Full clean rebuild from source JS files — eliminates accumulated patch drift
+- Seed data (173 tasks) now correctly injected at build time
 
 ---
 
 ## v10.0 — 2026-05-06
 **PWA icons + tab change history**
-- GII logo appears in browser tabs (favicon), iPhone/iPad home screen, and Android/Chrome home screen
-- Web App Manifest embedded — app name "GI Tracker", GI green theme color, standalone display mode
-- `apple-mobile-web-app-capable` — opens full-screen on iOS with no browser chrome when installed
-- Icons generated at 180×192×512px
-- Tab change history tracked: every tab creation, deletion, and rename logged with timestamp, action, tab name, and who did it
-- Tab history stored in Firebase with all other state
-- Last 20 tab events visible at bottom of Dashboard in "Tab Change History" table
-- Stores up to 100 events total, oldest trimmed automatically
+- GII logo in browser tabs (favicon), iPhone/iPad home screen, Android/Chrome home screen
+- Web App Manifest embedded — "GI Tracker", green theme, standalone display
+- `apple-mobile-web-app-capable` — full-screen on iOS when installed
+- Icons at 180×192×512px
+- Tab change history: every tab creation, deletion, rename logged with timestamp, who, action
+- Tab history stored in Firebase, visible in Dashboard (last 20 events)
 
-**To install on iPhone/iPad:** Open URL in Safari → Share → "Add to Home Screen" → Add
-**To install on Android:** Open in Chrome → three-dot menu → "Add to Home Screen"
-**To install on desktop:** Click the install icon in the address bar (Chrome/Edge)
+**Install:** iOS → Safari → Share → Add to Home Screen | Android → Chrome → ⋮ → Add to Home Screen | Desktop → install icon in address bar
 
 ---
 
 ## v9.0 — 2026-05-06
 **Cross-platform font consistency**
-- Full font fallback stacks: `Barlow → Segoe UI → system-ui → sans-serif` and `Barlow Condensed → Segoe UI Semibold → Segoe UI → system-ui → sans-serif`
-- Segoe UI fallback ensures clean rendering on Windows 10/11 if Google Fonts CDN is blocked
-- Google Fonts loads asynchronously (non-blocking) — page renders immediately
-- Added `-webkit-font-smoothing: antialiased` and `text-rendering: optimizeLegibility` globally
-- Fixes jagged/sharp edge rendering on Windows browsers
+- Full fallback stacks: `Barlow → Segoe UI → system-ui → sans-serif`
+- Async Google Fonts loading — renders immediately with fallbacks
+- `-webkit-font-smoothing: antialiased` globally — fixes Windows jagged rendering
 
 ---
 
 ## v8.0 — 2026-05-06
 **Mobile interaction + versioning**
-- Double-click any task row on desktop opens edit modal
-- Single tap any task row on mobile opens native-style bottom action sheet (Edit / View Change Log / Delete)
-- Touch vs mouse device automatically detected
-- Subtle "double-click to edit" hint on desktop row hover
-- Version number visible in app header (v8.0+)
-- `APP_VERSION` and `BUILD_DATE` constants at top of JS
+- Double-click task row on desktop → edit modal
+- Tap task row on mobile → bottom action sheet (Edit / Change Log / Delete)
+- Touch vs mouse auto-detected
+- Version number in app header, `APP_VERSION` constant at top of JS
 
 ---
 
 ## v7.0 — 2026-05-06
-**Logo, visual polish, report improvements**
-- GII icon mark in header (mix-blend-mode: screen)
+**Logo, visual polish, report**
+- GII icon mark in header (mix-blend-mode: screen, opacity 0.85)
 - Header gradient lightened, logo 50px, title 21px
-- Update banner bright green — more prominent
-- "Show/Hide Completed" button blue-tinted, distinct from dropdowns
-- Print/Save PDF button bold blue with drop shadow
-- Report header prints in color (print-color-adjust: exact)
-- GII logo in PDF report header
-- Active tab preserved when loading remote updates
+- Update banner bright green, completed button blue-tinted
+- Print/Save PDF button bold blue, report header prints in color
+- GII logo in PDF report, active tab preserved on remote update load
 
 ---
 
 ## v6.0 — 2026-05-06
 **Firebase REST API — live shared sync**
-- Pure `fetch()` REST calls — no SDK, no eval(), works on GitHub Pages
-- Real-time updates via Server-Sent Events (SSE)
-- Falls back to 15-second polling if SSE unavailable
-- Data wrapped as `{d: "..."}` to avoid Firebase key restrictions
-- User name prompt on first open per browser
-- Sync status dot: green = synced, yellow = saving, red = offline
-- "Load updates" banner when another user saves
-- Backup and Restore buttons in header
+- Pure `fetch()` — no SDK, no eval(), works on GitHub Pages/SharePoint/anywhere
+- Real-time via Server-Sent Events, 15s polling fallback
+- Data wrapped as `{d:"..."}` to avoid Firebase key restrictions
+- User name prompt on first open, sync dot, update banner, Backup/Restore
 
 ---
 
 ## v5.0 — 2026-05-06
 **Completed tasks + countdown badges + validation**
-- Completed tasks hidden by default, toggle to reveal
-- Revealed completed tasks greyed/struck-through with "Xd ago"
-- Active tasks due within 14 days show countdown badge
-- Input maxlength enforced on all fields
-- Auto-save debounced 800ms with save indicator
-- PDF report generation (configurable scope, charts, tables)
+- Completed tasks hidden by default, toggle to reveal with count
+- Countdown badge on tasks due within 14 days
+- Input maxlength on all fields, auto-save debounced 800ms
+- PDF report with configurable scope, charts, tables
 
 ---
 
 ## v4.0 — 2026-05-06
 **Excel import — 8 PM tabs, 173 tasks**
 - Kyle, Favs, Noah, Kendra, Software-Kendra, Service-Jonah, Jason, Design Bob & Cody
-- Per-tab custom buckets matching Excel layout
-- Real task data, normalized dates and statuses
+- Per-tab custom buckets, real task data, normalized dates/statuses
 
 ---
 
 ## v3.0 — 2026-05-06
 **Owner/Supporting, My Tasks, exports, change log**
 - Owner (green) + Supporting (blue) with autocomplete
-- My Tasks view across all tabs
-- Priority flags, CSV export, per-task change log, column sort
+- My Tasks view, priority flags, CSV export, per-task change log, column sort
 
 ---
 
 ## v2.0 — 2026-05-06
 **Per-tab config + dashboard**
-- Per-tab column/bucket configuration
-- Dashboard: stats, 3 charts, filterable master table
+- Per-tab column/bucket configuration, Dashboard with stats + 3 charts + filterable table
 
 ---
 
 ## v1.0 — 2026-05-06
 **Initial build — localStorage only**
-- Single HTML file, 8 tabs, task fields, due date color coding, localStorage
+- Single HTML file, 8 tabs, task fields, due date color coding
 
 ---
 
@@ -131,9 +111,10 @@
 | Upload as | index.html |
 | Firebase project | gi-task-tracker |
 | Firebase DB URL | https://gi-task-tracker-default-rtdb.firebaseio.com |
-| Firebase rules | `{".read": true, ".write": true}` |
+| Firebase rules | `{".read": true, ".write": true}` — internal only |
 | API key | Embedded in HTML — internal use only |
 
 **Moving hosting:** Data lives in Firebase. Move `index.html` anywhere — same credentials = same data.  
-**Backup:** Header Backup button downloads full JSON. Restore uploads it back for the whole team.  
-**Updating version:** Change `APP_VERSION` at top of JS, add entry here, upload both files to GitHub.
+**Backup:** Header Backup button = full JSON download. Restore uploads it back for whole team.  
+**Updating version:** Change `APP_VERSION` at top of JS, add entry here, upload both files.  
+**Rule:** Every HTML release = also release updated CHANGELOG.md.
