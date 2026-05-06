@@ -446,19 +446,42 @@ function applyRemoteState(remote) {
 function fbRead() {
   return new Promise(function(resolve, reject) {
     if (!db) { reject(new Error('DB not ready')); return; }
-    db.ref(DATA_PATH).once('value',
-      function(snap) { resolve(snap.val()); },
-      function(err)  { reject(err); }
-    );
+    try {
+      db.ref(DATA_PATH).once('value',
+        function(snap) {
+          var val = snap.val();
+          console.log('Firebase read OK, val is', val ? ('v='+val.v+' tabs='+JSON.stringify(val.tabs)) : 'null');
+          resolve(val);
+        },
+        function(err) {
+          console.error('Firebase read error:', err.code, err.message);
+          reject(err);
+        }
+      );
+    } catch(ex) {
+      console.error('Firebase read exception:', ex);
+      reject(ex);
+    }
   });
 }
 
 function fbWrite(data) {
   return new Promise(function(resolve, reject) {
     if (!db) { reject(new Error('DB not ready')); return; }
-    db.ref(DATA_PATH).set(data,
-      function(err) { if (err) reject(err); else resolve(true); }
-    );
+    try {
+      db.ref(DATA_PATH).set(data, function(err) {
+        if (err) {
+          console.error('Firebase write error:', err.code, err.message);
+          reject(err);
+        } else {
+          console.log('Firebase write OK, v='+data.v);
+          resolve(true);
+        }
+      });
+    } catch(ex) {
+      console.error('Firebase write exception:', ex);
+      reject(ex);
+    }
   });
 }
 
@@ -607,7 +630,7 @@ function initApp() {
     db = firebase.database();
   } catch(err) {
     console.error('Firebase init error:', err);
-    goOffline();
+    goOffline(err);
     return;
   }
 
@@ -635,24 +658,35 @@ function initApp() {
     }
   }).catch(function(err) {
     console.warn('Firebase read failed:', err);
-    goOffline();
+    goOffline(err);
   });
 }
 
-function goOffline() {
+function goOffline(err) {
+  console.error('Going offline, reason:', err);
   var cached = cacheLoad();
   if (cached && cached.tabs && cached.tabs.length) {
     applyRemoteState(cached);
-    setSyncStatus('offline', 'Offline \u2014 cached data');
-    showToast('Running offline \u2014 changes saved locally only.');
+    setSyncStatus('offline', 'Offline — cached data');
+    showToast('Running offline — changes saved locally only.');
+    finishInit();
   } else {
     initDefault();
     setSyncStatus('offline', 'Offline');
-    showToast('Could not connect to database. Running with default data.');
+    var errMsg = err ? (err.code || err.message || String(err)) : 'Could not connect.';
+    document.getElementById('appContent').innerHTML =
+      '<div style="text-align:center;padding:60px 20px">'
+      + '<div style="font-size:20px;color:var(--red);margin-bottom:12px">&#9888; Database Error</div>'
+      + '<div style="font-size:13px;color:var(--txm);max-width:500px;margin:0 auto;line-height:1.8">'
+      + '<b>' + esc(errMsg) + '</b><br><br>'
+      + 'Steps to fix:<br>'
+      + '1. Firebase console &rarr; Realtime Database &rarr; Rules &rarr; verify read/write = true &rarr; Publish<br>'
+      + '2. Press F12 &rarr; Console tab for detailed error<br>'
+      + '3. Hard refresh: Ctrl+Shift+R'
+      + '</div></div>';
+    finishInit();
   }
-  finishInit();
 }
-
 function finishInit() {
   attachListener();
   appReady = true;
