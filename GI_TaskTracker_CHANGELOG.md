@@ -7,6 +7,24 @@
 
 ---
 
+## v10.0 — 2026-05-06
+**PWA icons + tab change history**
+- GII logo now appears in browser tabs (favicon), iPhone/iPad home screen (apple-touch-icon), and Android/Chrome home screen
+- Web App Manifest embedded — app name "GI Tracker", GI green theme color, standalone display mode
+- `apple-mobile-web-app-capable` — opens full-screen on iOS with no browser chrome when installed to home screen
+- Icons generated at 180×192×512px with dark green background for proper iOS compositing
+- Tab change history now tracked: every tab creation, deletion, and rename is logged with timestamp, action, tab name, and who did it
+- Tab history stored in Firebase with all other state (persists across users and devices)
+- Last 20 tab events visible at bottom of Dashboard in "Tab Change History" table
+- Stores up to 100 events total, oldest trimmed automatically
+- Version bumped to v10.0
+
+**To install on iPhone/iPad:** Open URL in Safari → Share → "Add to Home Screen" → Add  
+**To install on Android:** Open URL in Chrome → three-dot menu → "Add to Home Screen"  
+**To install on desktop (Chrome/Edge):** Click the install icon in the address bar
+
+---
+
 ## v9.0 — 2026-05-06
 **Cross-platform font consistency**
 - Added full font fallback stacks everywhere: `Barlow → Segoe UI → system-ui → sans-serif` and `Barlow Condensed → Segoe UI Semibold → Segoe UI → system-ui → sans-serif`
@@ -37,7 +55,7 @@
 - Update banner changed to bright green (#4a9a20) — more prominent against header
 - "Show/Hide Completed" button now blue-tinted, label reads "Show/Hide Completed (N)" — distinct from grey dropdowns
 - Print/Save PDF button in report changed to bold blue with drop shadow
-- Report header green prints correctly (print-color-adjust: exact added globally)
+- Report header green prints correctly (`print-color-adjust: exact` added globally)
 - GII logo added to generated PDF report header
 - Active tab preserved when loading remote updates (no longer jumps to last-saved tab)
 
@@ -45,11 +63,11 @@
 
 ## v6.0 — 2026-05-06
 **Firebase REST API — live shared sync (no SDK)**
-- Replaced Firebase JS SDK (caused eval() CSP block on GitHub Pages) with pure fetch() REST calls
+- Replaced Firebase JS SDK (caused `eval()` CSP block on GitHub Pages) with pure `fetch()` REST calls
 - Works on GitHub Pages, SharePoint, file://, anywhere — no CSP issues
 - Real-time updates via Server-Sent Events (SSE) — instant push when another user saves
 - Falls back to 15-second polling if SSE unavailable
-- Data wrapped as {d: "..."} to avoid Firebase key character restrictions (/ . # $ [ ])
+- Data wrapped as `{d: "..."}` to avoid Firebase key character restrictions (`/ . # $ [ ]`)
 - User name prompt on first open per browser (stored in localStorage only)
 - Sync status dot in header: green = synced, yellow = saving, red = offline
 - "Load updates" banner when another user saves
@@ -62,9 +80,9 @@
 - Completed tasks hidden by default on all tabs
 - "Show/Hide Completed" toggle per tab shows count
 - Revealed completed tasks greyed/struck-through with "Xd ago" label
-- completedAt timestamp tracked per task
+- `completedAt` timestamp tracked per task
 - Active tasks due within 14 days show live countdown badge ("3 days left" etc.)
-- Input maxlength enforced: textarea 2000, text 200, name/owner 120, tab name 60
+- Input `maxlength` enforced: textarea 2000, text 200, name/owner 120, tab name 60
 - Auto-save debounced 800ms — "Saving..." / "Saved by [Name]" indicator
 - Report generation: configurable PDF via browser print dialog
 - Report includes summary stats, 3 charts, task tables by PM/bucket
@@ -122,14 +140,14 @@
 |------|-------|
 | GitHub repo | kyleharmer/gi-tracker |
 | Live URL | https://kyleharmer.github.io/gi-tracker |
-| File to upload | Rename to index.html before uploading |
+| File to upload | Rename to `index.html` before uploading |
 | Firebase project | gi-task-tracker |
 | Firebase DB URL | https://gi-task-tracker-default-rtdb.firebaseio.com |
-| Firebase rules | {".read": true, ".write": true} — open (internal only) |
+| Firebase rules | `{".read": true, ".write": true}` — open (internal only) |
 | API key | Embedded in HTML — safe for internal use only |
 
-**Moving hosting:** Data lives in Firebase, not the HTML. Move index.html anywhere freely — same credentials = same data.
+**Moving hosting:** Data lives in Firebase, not the HTML. Move `index.html` to any host freely — same credentials = same data.
 
 **Backup:** Use the Backup button in the header to download a full JSON snapshot. Restore button uploads it back to Firebase for the whole team.
 
-**Updating version:** Change APP_VERSION at the top of the JS and add an entry here before uploading.
+**Updating version:** Change `APP_VERSION` at the top of the JS, add an entry at the top of this file, upload both `index.html` and `GI_TaskTracker_CHANGELOG.md` to GitHub.
