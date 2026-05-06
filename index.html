@@ -315,14 +315,31 @@ function fbRead() {
     .then(function(res) {
       if (!res.ok) throw new Error('Read failed: HTTP ' + res.status);
       return res.json();
+    })
+    .then(function(raw) {
+      if (!raw) return null;
+      // Unwrap: if stored as {d: "...", v, ts, savedBy} format, parse the inner string
+      if (raw.d && typeof raw.d === 'string') {
+        try {
+          var inner = JSON.parse(raw.d);
+          inner.v = raw.v || inner.v;
+          inner.ts = raw.ts || inner.ts;
+          inner.savedBy = raw.savedBy || inner.savedBy;
+          return inner;
+        } catch(e) { return raw; }
+      }
+      return raw;
     });
 }
 
 function fbWrite(data) {
+  // Wrap in {d: "..."} — stores entire state as a single JSON string
+  // This avoids Firebase key restrictions (no . # $ [ ] / in keys)
+  var wrapped = { d: JSON.stringify(data), v: data.v, ts: data.ts, savedBy: data.savedBy };
   return fetch(fbUrl(DATA_NODE), {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
+    body: JSON.stringify(wrapped)
   }).then(function(res) {
     if (!res.ok) {
       return res.text().then(function(t) {
@@ -344,7 +361,7 @@ function attachStream() {
   }
   if (streamSource) { streamSource.close(); streamSource = null; }
 
-  var url = FB_DB_URL + '/' + STREAM_NODE + '.json?auth=' + FB_API_KEY;
+  var url = FB_DB_URL + '/' + STREAM_NODE + '.json'; // no auth needed with open rules
   try {
     streamSource = new EventSource(url);
     streamSource.addEventListener('put', function(e) {
@@ -352,8 +369,19 @@ function attachStream() {
       if (ignoreNextStream) { ignoreNextStream = false; return; }
       try {
         var msg = JSON.parse(e.data);
-        if (!msg || !msg.data || !msg.data.tabs) return;
+        if (!msg || !msg.data) return;
         var remote = msg.data;
+        // Unwrap if stored in wrapped format
+        if (remote.d && typeof remote.d === 'string') {
+          try {
+            var inner = JSON.parse(remote.d);
+            inner.v = remote.v || inner.v;
+            inner.ts = remote.ts || inner.ts;
+            inner.savedBy = remote.savedBy || inner.savedBy;
+            remote = inner;
+          } catch(e2) {}
+        }
+        if (!remote.tabs) return;
         if (remote.v <= localVersion) return;
         showUpdateBanner(remote);
       } catch(ex) { console.warn('Stream parse error:', ex); }
