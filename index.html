@@ -327,7 +327,7 @@ input,select,textarea,button{font-family:'Barlow','Segoe UI',system-ui,-apple-sy
 // Pure fetch() calls. No SDK. No eval(). Works everywhere.
 // ═══════════════════════════════════════════════════════════════════
 
-var APP_VERSION = 'v11.4';
+var APP_VERSION = 'v11.5';
 var BUILD_DATE  = '2026-05-06';
 var REPORT_STORE = REPORT_KEY;
 var FB_DB_URL   = 'https://gi-task-tracker-default-rtdb.firebaseio.com';
@@ -351,7 +351,7 @@ var appReady         = false;
 
 // ── FIREBASE REST HELPERS ──────────────────────────────────────────
 function fbUrl(node) {
-  return FB_DB_URL + '/' + node + '.json';
+  return FB_DB_URL + '/' + node + '.json?auth=' + FB_API_KEY;
 }
 
 function fbRead() {
