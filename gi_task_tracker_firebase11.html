@@ -386,7 +386,7 @@ function attachStream() {
   }
   if (streamSource) { streamSource.close(); streamSource = null; }
 
-  var url = FB_DB_URL + '/' + STREAM_NODE + '.json?auth=' + FB_API_KEY;
+  var url = FB_DB_URL + '/' + STREAM_NODE + '.json'; // no auth param — open rules don't need it, auth causes 401 on SSE
   try {
     streamSource = new EventSource(url);
     streamSource.addEventListener('put', function(e) {
