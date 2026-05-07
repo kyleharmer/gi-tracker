@@ -85,8 +85,6 @@ body{font-family:'Barlow','Segoe UI',system-ui,-apple-system,sans-serif;backgrou
 .bucket-body{background:var(--surf);border:1px solid var(--bdr);border-top:none;border-radius:0 0 var(--r) var(--r);overflow:hidden}
 .bucket-collapsed .bucket-body{display:none}
 .task-table{width:100%;border-collapse:collapse;font-size:13px}
-.conflict-row td{background:rgba(255,180,0,0.07);}
-.conflict-badge{display:inline-block;margin-left:5px;font-size:11px;color:#b8860b;background:rgba(255,200,0,0.18);border:1px solid rgba(255,180,0,0.4);border-radius:3px;padding:0 4px;cursor:help;vertical-align:middle;line-height:1.6;}
 .task-table thead tr{background:var(--surf2);border-bottom:1px solid var(--bdr)}
 .task-table th{padding:7px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--txm);white-space:nowrap;cursor:pointer;user-select:none}
 .task-table th:hover{color:var(--tx)}
@@ -327,7 +325,7 @@ input,select,textarea,button{font-family:'Barlow','Segoe UI',system-ui,-apple-sy
 // Pure fetch() calls. No SDK. No eval(). Works everywhere.
 // ═══════════════════════════════════════════════════════════════════
 
-var APP_VERSION = 'v11.2';
+var APP_VERSION = 'v11.1';
 var BUILD_DATE  = '2026-05-06';
 var REPORT_STORE = REPORT_KEY;
 var FB_DB_URL   = 'https://gi-task-tracker-default-rtdb.firebaseio.com';
@@ -590,132 +588,6 @@ function applyRemoteState(remote) {
   return true;
 }
 
-// ── MERGE STATE ────────────────────────────────────────────────────
-// Merges remote state into local state without overwriting local-only changes.
-// Rules:
-//   1. Tasks only in local  → kept (local additions survive)
-//   2. Tasks only in remote → pulled in (remote additions arrive)
-//   3. Tasks on both sides  → field-level merge (most-recent changelog wins per field)
-//   4. Tasks deleted remote but exist local → restored, flagged conflict
-//   5. Tasks deleted local but exist remote → stays deleted (local intent respected)
-function mergeStates(local, remote) {
-  if (!remote || !remote.tabs) return local;
-
-  var TASK_FIELDS = ['customer','notes','owner','support','status','due',
-                     'priority','milestone','meetingNotes'];
-  var now = new Date().toISOString();
-  var merged = JSON.parse(JSON.stringify(local)); // deep clone local
-
-  // Helper: get timestamp of last change to a field from changelog
-  function lastChangedAt(task, field) {
-    if (!task.changelog || !task.changelog.length) return 0;
-    for (var i = task.changelog.length - 1; i >= 0; i--) {
-      var entry = task.changelog[i];
-      if (entry.field === field || (entry.fields && entry.fields.indexOf(field) > -1)) {
-        return new Date(entry.ts || 0).getTime();
-      }
-    }
-    return 0;
-  }
-
-  // Build lookup maps: id → {task, bucket, tab} for both sides
-  function buildIndex(tasksObj) {
-    var idx = {};
-    Object.keys(tasksObj || {}).forEach(function(tab) {
-      Object.keys(tasksObj[tab] || {}).forEach(function(bucket) {
-        (tasksObj[tab][bucket] || []).forEach(function(t) {
-          if (t.id) idx[t.id] = { task: t, bucket: bucket, tab: tab };
-        });
-      });
-    });
-    return idx;
-  }
-
-  var localIdx  = buildIndex(local.tasks);
-  var remoteIdx = buildIndex(remote.tasks);
-
-  // Pass 1: for each remote task, merge into local
-  Object.keys(remoteIdx).forEach(function(id) {
-    var rem = remoteIdx[id];
-    var loc = localIdx[id];
-
-    if (!loc) {
-      // Task exists remotely, not locally → pull it in
-      var tab    = rem.tab;
-      var bucket = rem.bucket;
-      if (!merged.tasks[tab]) merged.tasks[tab] = {};
-      if (!merged.tasks[tab][bucket]) merged.tasks[tab][bucket] = [];
-      merged.tasks[tab][bucket].push(JSON.parse(JSON.stringify(rem.task)));
-      return;
-    }
-
-    // Task exists on both sides → field-level merge
-    var localTask  = loc.task;
-    var remoteTask = rem.task;
-    var conflictFields = [];
-
-    TASK_FIELDS.forEach(function(field) {
-      var localVal  = localTask[field];
-      var remoteVal = remoteTask[field];
-      if (localVal === remoteVal) return; // no diff, nothing to do
-      var localTs  = lastChangedAt(localTask,  field);
-      var remoteTs = lastChangedAt(remoteTask, field);
-      if (remoteTs > localTs) {
-        // Remote is newer for this field — take it
-        localTask[field] = remoteVal;
-        conflictFields.push(field);
-      }
-      // else local is newer or equal — keep local (no action)
-    });
-
-    if (conflictFields.length) {
-      // Flag the task so the row renders a conflict badge
-      localTask.conflict = true;
-      localTask.conflictFields = conflictFields;
-      // Add a changelog entry describing the merge
-      if (!localTask.changelog) localTask.changelog = [];
-      localTask.changelog.push({
-        ts: now,
-        by: 'System',
-        note: '⚠ Merge: remote update applied to ' + conflictFields.join(', ')
-      });
-    }
-  });
-
-  // Pass 2: tasks that exist locally but NOT remotely
-  // → If they were locally created (no remote record ever), keep them — already in merged.
-  // → If remote intentionally deleted them, restore them with a conflict flag.
-  Object.keys(localIdx).forEach(function(id) {
-    if (!remoteIdx[id]) {
-      // Remote doesn't have this task — treat as deletion conflict: restore + flag
-      var loc = localIdx[id];
-      var localTask = loc.task;
-      localTask.conflict = true;
-      localTask.conflictFields = localTask.conflictFields || [];
-      if (!localTask.changelog) localTask.changelog = [];
-      localTask.changelog.push({
-        ts: now,
-        by: 'System',
-        note: '⚠ Conflict: this task was deleted remotely but has been restored. Review and delete manually if intended.'
-      });
-      // Task is already in merged (cloned from local), just ensure flag is set
-    }
-  });
-
-  // Pull in remote structural changes (tabs, buckets, columns) but don't overwrite local
-  merged.tabs       = remote.tabs;
-  merged.tabCols    = remote.tabCols    || merged.tabCols;
-  merged.tabBuckets = remote.tabBuckets || merged.tabBuckets;
-  merged.timestamps = remote.timestamps || merged.timestamps;
-  merged.tabHistory = remote.tabHistory || merged.tabHistory;
-  merged.v          = remote.v;
-
-  if (!merged.activeTab || merged.tabs.indexOf(merged.activeTab) === -1)
-    merged.activeTab = merged.tabs[0];
-
-  return merged;
-}
-
 // ── PERSIST ────────────────────────────────────────────────────────
 function persist() {
   state.timestamps[state.activeTab] = nowTs();
@@ -775,27 +647,11 @@ function showUpdateBanner(remoteData) {
 }
 function acceptUpdate() {
   if (window._pendingRemote) {
-    var merged = mergeStates(state, window._pendingRemote);
-    state = merged;
-    localVersion = merged.v || localVersion;
-    cloudVersion = localVersion;
-    cacheSave(serializeState());
+    applyRemoteState(window._pendingRemote);
+    cacheSave(window._pendingRemote);
     dismissUpdate();
     renderApp();
-    // Count any conflict-flagged tasks to inform the user
-    var conflicts = 0;
-    Object.keys(state.tasks || {}).forEach(function(tab) {
-      Object.keys(state.tasks[tab] || {}).forEach(function(bucket) {
-        (state.tasks[tab][bucket] || []).forEach(function(t) {
-          if (t.conflict) conflicts++;
-        });
-      });
-    });
-    if (conflicts > 0) {
-      showToast('Updates merged. ' + conflicts + ' task(s) had conflicts — look for ⚠ badges.');
-    } else {
-      showToast('Updates merged successfully.');
-    }
+    showToast('Loaded latest updates.');
   }
 }
 function dismissUpdate() {
@@ -1445,11 +1301,11 @@ function renderApp(){
             if(showPeople)h+='<th data-sort="owner">Owner / Support</th>';
       h+='<th style="width:80px"></th></tr></thead><tbody>';
       tasks.forEach(function(t){
-        h+='<tr data-task-id="'+t.id+'" data-bucket="'+esc(bucket)+'" data-tab="'+esc(tab)+'" data-customer="'+esc(t.customer||'')+'"'+(t.conflict?' class="conflict-row"':'')+'>';
+        h+='<tr data-task-id="'+t.id+'" data-bucket="'+esc(bucket)+'" data-tab="'+esc(tab)+'" data-customer="'+esc(t.customer||'')+'">';
         cols.forEach(function(c){
           if(c.key==='owner'||c.key==='support')return;
           h+='<td>';
-          if(c.key==='customer')h+='<div class="cust-name">'+esc(t.customer||'—')+(t.conflict?'<span class="conflict-badge" title="'+(t.conflictFields?'Merged fields: '+t.conflictFields.join(', '):'Merge conflict — review this task')+'">⚠</span>':'')+'</div>';
+          if(c.key==='customer')h+='<div class="cust-name">'+esc(t.customer||'—')+'</div>';
           else if(c.key==='due')h+=dueBadgeWithCountdown(t.due,t.status);
           else if(c.key==='status')h+=statusPill(t.status);
           else if(c.key==='priority')h+=priTag(t.priority);
@@ -1626,10 +1482,7 @@ function saveTask(){
   if(task.changelog.length>20)task.changelog=task.changelog.slice(-20);
   ensureTab(tab);
   if(isNew){state.tasks[tab][editingBucket].push(task);}
-  else{var a1=state.tasks[tab][editingBucket];for(var j=0;j<a1.length;j++){if(a1[j].id===editingTask){
-    // Clear conflict flag now that user has reviewed and saved this task
-    task.conflict=false; task.conflictFields=null;
-    a1[j]=task;break;}}}
+  else{var a1=state.tasks[tab][editingBucket];for(var j=0;j<a1.length;j++){if(a1[j].id===editingTask){a1[j]=task;break;}}}
   persist();closeModal('taskModal');renderApp();showToast(isNew?'Task added.':'Task updated.');
 }
 function deleteTask(id,bucket){
