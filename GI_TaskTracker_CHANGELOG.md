@@ -2,6 +2,29 @@
 
 ---
 
+## v11.3 — 2025-05-07
+**Firebase Write/Read Fix + Version Sync Fix**
+
+Three bugs were causing tasks to disappear on refresh and the "Load updates" banner to never appear.
+
+### Root causes
+
+1. **`fbUrl()` had `?auth=` appended to REST calls** — Firebase open rules reject authenticated requests on open databases. Every `fbRead()` and `fbWrite()` call was silently failing. The SSE stream URL already had auth removed (v11.1 fix) but the REST URL was missed.
+
+2. **Double version bump** — `serializeState()` was returning `localVersion + 1`, then `persistNow()` was also adding `+1` before writing. This caused version to jump by 2 on every save, breaking the SSE listener's `remote.v > localVersion` comparison — so the update banner never triggered.
+
+3. **Consequence of bug 2** — because writes were failing (bug 1), tasks added locally were never persisted to Firebase, disappearing on refresh.
+
+### Fix — 3 surgical changes
+- `fbUrl()`: removed `?auth=` param from REST URL (open rules work without it)
+- `serializeState()`: returns `localVersion` (no increment) — version source of truth
+- `persistNow()`: keeps the single `+1` increment before writing — correct location
+- `APP_VERSION`: bumped to v11.3
+
+**Not touched:** `fbRead`, `fbWrite`, `attachStream`, `initApp`, `mergeStates`, `acceptUpdate`, all UI/modal/dashboard/config code
+
+---
+
 ## v11.2 — 2025-05-07
 **Real-time Merge (Conflict-Safe Sync)**
 
